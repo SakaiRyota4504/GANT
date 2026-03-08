@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
 using System.IO;
+using Microsoft.Data.Sqlite;
 using TaskManager.Models;
 
 namespace TaskManager.Services
@@ -18,14 +18,14 @@ namespace TaskManager.Services
             Directory.CreateDirectory(appDataPath);
 
             string dbPath = Path.Combine(appDataPath, "tasks.db");
-            _connectionString = $"Data Source={dbPath};Version=3;";
+            _connectionString = $"Data Source={dbPath}";
 
             InitializeDatabase();
         }
 
         private void InitializeDatabase()
         {
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -57,7 +57,7 @@ namespace TaskManager.Services
 
         public int InsertTask(TaskItem task)
         {
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -79,7 +79,7 @@ namespace TaskManager.Services
 
         public void UpdateTask(TaskItem task)
         {
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -108,7 +108,7 @@ namespace TaskManager.Services
 
         public void DeleteTask(int id)
         {
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -123,7 +123,7 @@ namespace TaskManager.Services
         public List<TaskItem> GetTasksByDate(string date)
         {
             var list = new List<TaskItem>();
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -144,7 +144,7 @@ namespace TaskManager.Services
         public List<TaskItem> GetTasksByDateRange(string fromDate, string toDate)
         {
             var list = new List<TaskItem>();
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -168,19 +168,19 @@ namespace TaskManager.Services
         /// <summary>順序の一括更新</summary>
         public void UpdateOrders(IEnumerable<TaskItem> tasks)
         {
-            using (var conn = new SQLiteConnection(_connectionString))
+            using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
                 using (var tr = conn.BeginTransaction())
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = "UPDATE Tasks SET OrderIndex = @order WHERE Id = @id";
-                    var pOrder = cmd.Parameters.Add("@order", System.Data.DbType.Int32);
-                    var pId = cmd.Parameters.Add("@id", System.Data.DbType.Int32);
+                    var pOrder = cmd.Parameters.Add("@order", SqliteType.Integer);
+                    var pId    = cmd.Parameters.Add("@id",    SqliteType.Integer);
                     foreach (var t in tasks)
                     {
                         pOrder.Value = t.OrderIndex;
-                        pId.Value = t.Id;
+                        pId.Value    = t.Id;
                         cmd.ExecuteNonQuery();
                     }
                     tr.Commit();
@@ -190,39 +190,39 @@ namespace TaskManager.Services
 
         // ── Helper ────────────────────────────────────────────
 
-        private static void BindTaskParameters(SQLiteCommand cmd, TaskItem t)
+        private static void BindTaskParameters(SqliteCommand cmd, TaskItem t)
         {
-            cmd.Parameters.AddWithValue("@date", t.Date);
-            cmd.Parameters.AddWithValue("@order", t.OrderIndex);
-            cmd.Parameters.AddWithValue("@title", t.Title ?? "");
-            cmd.Parameters.AddWithValue("@category", (object)t.Category ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@note", (object)t.Note ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@plannedMin", t.PlannedMinutes);
+            cmd.Parameters.AddWithValue("@date",         t.Date);
+            cmd.Parameters.AddWithValue("@order",        t.OrderIndex);
+            cmd.Parameters.AddWithValue("@title",        t.Title ?? "");
+            cmd.Parameters.AddWithValue("@category",     (object)t.Category      ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@note",         (object)t.Note          ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@plannedMin",   t.PlannedMinutes);
             cmd.Parameters.AddWithValue("@plannedStart", (object)t.PlannedStartTime ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@plannedEnd", (object)t.PlannedEndTime ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@plannedEnd",   (object)t.PlannedEndTime   ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@actualStart",
                 t.ActualStartedAt.HasValue ? (object)t.ActualStartedAt.Value.ToString("o") : DBNull.Value);
             cmd.Parameters.AddWithValue("@actualEnd",
-                t.ActualEndedAt.HasValue ? (object)t.ActualEndedAt.Value.ToString("o") : DBNull.Value);
-            cmd.Parameters.AddWithValue("@accumulated", t.AccumulatedSeconds);
-            cmd.Parameters.AddWithValue("@status", (int)t.Status);
+                t.ActualEndedAt.HasValue   ? (object)t.ActualEndedAt.Value.ToString("o")   : DBNull.Value);
+            cmd.Parameters.AddWithValue("@accumulated",  t.AccumulatedSeconds);
+            cmd.Parameters.AddWithValue("@status",       (int)t.Status);
         }
 
-        private static TaskItem ReadTask(SQLiteDataReader r)
+        private static TaskItem ReadTask(SqliteDataReader r)
         {
             var task = new TaskItem
             {
-                Id = r.GetInt32(r.GetOrdinal("Id")),
-                Date = r.GetString(r.GetOrdinal("Date")),
-                OrderIndex = r.GetInt32(r.GetOrdinal("OrderIndex")),
-                Title = r.GetString(r.GetOrdinal("Title")),
-                Category = r.IsDBNull(r.GetOrdinal("Category")) ? null : r.GetString(r.GetOrdinal("Category")),
-                Note = r.IsDBNull(r.GetOrdinal("Note")) ? null : r.GetString(r.GetOrdinal("Note")),
+                Id             = r.GetInt32(r.GetOrdinal("Id")),
+                Date           = r.GetString(r.GetOrdinal("Date")),
+                OrderIndex     = r.GetInt32(r.GetOrdinal("OrderIndex")),
+                Title          = r.GetString(r.GetOrdinal("Title")),
+                Category       = r.IsDBNull(r.GetOrdinal("Category"))       ? null : r.GetString(r.GetOrdinal("Category")),
+                Note           = r.IsDBNull(r.GetOrdinal("Note"))           ? null : r.GetString(r.GetOrdinal("Note")),
                 PlannedMinutes = r.GetInt32(r.GetOrdinal("PlannedMinutes")),
                 PlannedStartTime = r.IsDBNull(r.GetOrdinal("PlannedStartTime")) ? null : r.GetString(r.GetOrdinal("PlannedStartTime")),
-                PlannedEndTime = r.IsDBNull(r.GetOrdinal("PlannedEndTime")) ? null : r.GetString(r.GetOrdinal("PlannedEndTime")),
+                PlannedEndTime   = r.IsDBNull(r.GetOrdinal("PlannedEndTime"))   ? null : r.GetString(r.GetOrdinal("PlannedEndTime")),
                 AccumulatedSeconds = r.GetInt32(r.GetOrdinal("AccumulatedSeconds")),
-                Status = (Models.TaskStatus)r.GetInt32(r.GetOrdinal("Status")),
+                Status         = (Models.TaskStatus)r.GetInt32(r.GetOrdinal("Status")),
             };
 
             int startOrd = r.GetOrdinal("ActualStartedAt");
