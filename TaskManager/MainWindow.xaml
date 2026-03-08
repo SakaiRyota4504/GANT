@@ -202,8 +202,8 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- ステータスカラーバー -->
-                                <Rectangle Grid.Column="0" CornerRadius="3"
-                                           Fill="{Binding Status, Converter={StaticResource StatusToColor}}"/>
+                                <Border Grid.Column="0" CornerRadius="3"
+                                        Background="{Binding Status, Converter={StaticResource StatusToColor}}"/>
 
                                 <!-- タスク情報 -->
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
